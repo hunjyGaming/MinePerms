@@ -5,7 +5,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public interface SubCommand {
-    void onCommand(CommandSender commandSender, String[] args);
+    boolean onCommand(CommandSender commandSender, String[] args);
 
     String getPermission();
 

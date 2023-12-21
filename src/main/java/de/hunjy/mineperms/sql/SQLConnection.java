@@ -1,8 +1,12 @@
 package de.hunjy.mineperms.sql;
 
 import de.hunjy.mineperms.MinePermsLogger;
-import de.hunjy.mineperms.manager.ConfigManager;
+import de.hunjy.mineperms.group.PermissionGroup;
+import de.hunjy.mineperms.config.ConfigManager;
+import de.hunjy.mineperms.sql.query.GroupResultQueryListener;
+import de.hunjy.mineperms.sql.query.PlayerInfoResultQueryListener;
 import de.hunjy.mineperms.sql.table.SQLTableBuilder;
+import org.bukkit.entity.Player;
 
 import java.sql.*;
 import java.util.*;
@@ -12,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SQLConnection {
     private final ExecutorService service = Executors.newFixedThreadPool(1);
+    private ConfigManager configManager;
     public Connection con;
     String host;
     String name;
@@ -19,6 +24,7 @@ public class SQLConnection {
     String database;
 
     public SQLConnection(ConfigManager configManager) {
+        this.configManager = configManager;
         this.host = configManager.getString("mysql.host");
         this.name = configManager.getString("mysql.username");
         this.password = configManager.getString("mysql.password");
@@ -33,7 +39,7 @@ public class SQLConnection {
                 this.con = DriverManager.getConnection("jdbc:mysql://" + this.host + ":3306/" + this.database + "?autoReconnect=true", this.name, this.password);
                 MinePermsLogger.log("[MySQL] Verbindung zur MySQL hergestellt!");
             } catch (SQLException e) {
-                MinePermsLogger.warning("[MySQL] §4Fehler: §c" + e.getMessage());
+                MinePermsLogger.warning("[MySQL] Fehler: " + e.getMessage());
             }
         }
     }
@@ -44,7 +50,15 @@ public class SQLConnection {
         groupTable.addRow(new SQLTableBuilder.TableRow("group_options", SQLTableBuilder.DataType.LONGTEXT));
         groupTable.addRow(new SQLTableBuilder.TableRow("group_permissions", SQLTableBuilder.DataType.LONGTEXT));
         groupTable.setPrimaryKey("group_name");
-        query(groupTable.build());
+
+
+        SQLTableBuilder userTable = new SQLTableBuilder("users");
+        userTable.addRow(new SQLTableBuilder.TableRow("user_uuid", SQLTableBuilder.DataType.VARCHAR));
+        userTable.addRow(new SQLTableBuilder.TableRow("user_groups", SQLTableBuilder.DataType.LONGTEXT));
+        userTable.addRow(new SQLTableBuilder.TableRow("user_permissions", SQLTableBuilder.DataType.LONGTEXT));
+        userTable.addRow(new SQLTableBuilder.TableRow("user_options", SQLTableBuilder.DataType.LONGTEXT));
+        userTable.setPrimaryKey("user_uuid");
+        query(userTable.build());
     }
 
     public void close() {
@@ -60,7 +74,7 @@ public class SQLConnection {
                 MinePermsLogger.log("[MySQL] Verbindung zur MySQL beendet!");
             } catch (SQLException var2) {
                 var2.printStackTrace();
-                MinePermsLogger.warning("[MySQL] §4Fehler: §c" + var2.getMessage());
+                MinePermsLogger.warning("[MySQL] Fehler: " + var2.getMessage());
             }
         }
 
@@ -106,5 +120,52 @@ public class SQLConnection {
     public Connection getCon() {
         return this.con;
     }
+
+    public void loadUser(Player player, PlayerInfoResultQueryListener resultQueryListener) {
+        Objects.requireNonNull(resultQueryListener);
+        this.service.execute(() -> {
+            if (this.isConnected()) {
+                HashMap<String, String> rawPlayerData = new HashMap<>();
+                try (PreparedStatement stmt = this.con.prepareStatement("SELECT * FROM " + configManager.getString("mysql.table_prefix") + "groups")) {
+                    try (ResultSet set = stmt.executeQuery()) {
+                        while (set.next()) {
+                            rawPlayerData.put("GROUPS", set.getString("user_groups"));
+                            rawPlayerData.put("PERMISSIONS", set.getString("user_permissions"));
+                            rawPlayerData.put("OPTIONS", set.getString("user_options"));
+                        }
+                    }
+                } catch (SQLException exception) {
+                    resultQueryListener.onQueryError(exception);
+                    return;
+                }
+                resultQueryListener.onQueryResult(rawPlayerData);
+            }
+        });
+    }
+    public void loadGroups(GroupResultQueryListener resultQueryListener) {
+        Objects.requireNonNull(resultQueryListener);
+        this.service.execute(() -> {
+            if (this.isConnected()) {
+                List<PermissionGroup> permissionGroups = new ArrayList<>();
+                try (PreparedStatement stmt = this.con.prepareStatement("SELECT * FROM " + configManager.getString("mysql.table_prefix") + "groups")) {
+                    try (ResultSet set = stmt.executeQuery()) {
+                        while (set.next()) {
+                            permissionGroups.add(
+                                    new PermissionGroup(
+                                            set.getString("group_name"),
+                                            set.getString("group_options"),
+                                            set.getString("group_permissions"))
+                            );
+                        }
+                    }
+                } catch (SQLException exception) {
+                    resultQueryListener.onQueryError(exception);
+                    return;
+                }
+                resultQueryListener.onQueryResult(permissionGroups);
+            }
+        });
+    }
+
 
 }
