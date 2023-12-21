@@ -1,0 +1,15 @@
+de\hunjy\mineperms\manager\ConfigManager.class
+de\hunjy\mineperms\sql\SQLConnection.class
+de\hunjy\mineperms\player\PermsPlayer.class
+de\hunjy\mineperms\sql\table\SQLTableBuilder$TableRow.class
+de\hunjy\mineperms\command\SubCommand.class
+de\hunjy\mineperms\events\PlayerGroupExpiredEvent.class
+de\hunjy\mineperms\command\MinePermsCommand.class
+de\hunjy\mineperms\manager\DataManager.class
+de\hunjy\mineperms\manager\MessageManager.class
+de\hunjy\mineperms\events\PlayerPermissionChangeEvent.class
+de\hunjy\mineperms\sql\table\SQLTableBuilder$DataType.class
+de\hunjy\mineperms\MinePerms.class
+de\hunjy\mineperms\MinePermsLogger.class
+de\hunjy\mineperms\sql\table\SQLTableBuilder.class
+de\hunjy\mineperms\events\PlayerGroupChangeEvent.class

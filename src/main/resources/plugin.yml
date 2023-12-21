@@ -1,0 +1,7 @@
+name: MinePerms
+version: '${project.version}'
+main: de.hunjy.mineperms.MinePerms
+api-version: '1.20'
+
+commands:
+  mineperms:

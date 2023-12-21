@@ -1,0 +1,13 @@
+mysql:
+  host: "127.0.0.1"
+  port: "3306"
+  username: "user"
+  password: "password"
+  database: "database"
+  table_prefix: "mp_"
+lang: "de"
+
+messages:
+  PREFIX: "&x&f&b&9&0&2&8M&x&f&a&9&e&2&4i&x&f&a&a&b&2&1n&x&f&9&b&9&1&de&x&f&8&c&7&1&9P&x&f&7&d&4&1&5e&x&f&7&e&2&1&2r&x&f&6&e&f&0&em&x&f&5&f&d&0&as &8|&r"
+  COMMAND_NO_PERMISSIONS: "{prefix} §cDazu hast du keine Rechte!"
+  COMMAND_DEFAULT_USAGE: "{prefix} §7Benutze §c/mineperms help §7für eine Liste aller Befehle"
