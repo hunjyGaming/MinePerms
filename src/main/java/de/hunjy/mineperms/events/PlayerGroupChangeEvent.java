@@ -6,22 +6,20 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-
 public class PlayerGroupChangeEvent extends Event {
 
 
     private static final HandlerList handlers = new HandlerList();
 
 
-    private Player player;
-    private List<PermissionGroup> permissionGroups;
+    private final Player player;
+    private final PermissionGroup permissionGroup;
 
-    private PlayerGroupChangeType type;
+    private final PlayerGroupChangeType type;
 
-    public PlayerGroupChangeEvent(Player player, List<PermissionGroup> permissionGroups, PlayerGroupChangeType type) {
+    public PlayerGroupChangeEvent(Player player, PermissionGroup permissionGroup, PlayerGroupChangeType type) {
         this.player = player;
-        this.permissionGroups = permissionGroups;
+        this.permissionGroup = permissionGroup;
         this.type = type;
     }
 
@@ -39,8 +37,8 @@ public class PlayerGroupChangeEvent extends Event {
         return player;
     }
 
-    public List<PermissionGroup> getPermissionGroups() {
-        return permissionGroups;
+    public PermissionGroup getPermissionGroup() {
+        return permissionGroup;
     }
 
     public PlayerGroupChangeType getType() {

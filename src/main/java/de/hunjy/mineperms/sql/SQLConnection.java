@@ -6,7 +6,6 @@ import de.hunjy.mineperms.config.ConfigManager;
 import de.hunjy.mineperms.sql.query.GroupResultQueryListener;
 import de.hunjy.mineperms.sql.query.PlayerInfoResultQueryListener;
 import de.hunjy.mineperms.sql.table.SQLTableBuilder;
-import org.bukkit.entity.Player;
 
 import java.sql.*;
 import java.util.*;
@@ -16,19 +15,17 @@ import java.util.concurrent.TimeUnit;
 
 public class SQLConnection {
     private final ExecutorService service = Executors.newFixedThreadPool(1);
-    private ConfigManager configManager;
     public Connection con;
     String host;
     String name;
     String password;
     String database;
 
-    public SQLConnection(ConfigManager configManager) {
-        this.configManager = configManager;
-        this.host = configManager.getString("mysql.host");
-        this.name = configManager.getString("mysql.username");
-        this.password = configManager.getString("mysql.password");
-        this.database = configManager.getString("mysql.database");
+    public SQLConnection() {
+        this.host = ConfigManager.getString("mysql.host");
+        this.name = ConfigManager.getString("mysql.username");
+        this.password = ConfigManager.getString("mysql.password");
+        this.database = ConfigManager.getString("mysql.database");
         connect();
         updateTableStructure();
     }
@@ -50,13 +47,16 @@ public class SQLConnection {
         groupTable.addRow(new SQLTableBuilder.TableRow("group_options", SQLTableBuilder.DataType.LONGTEXT));
         groupTable.addRow(new SQLTableBuilder.TableRow("group_permissions", SQLTableBuilder.DataType.LONGTEXT));
         groupTable.setPrimaryKey("group_name");
+        query(groupTable.build());
+
+        String rawOptions = "createAt::" + System.currentTimeMillis() + "//sortid::" + 99;
+        String options = Base64.getEncoder().encodeToString(rawOptions.getBytes());
+        query("INSERT IGNORE INTO " + ConfigManager.getString("mysql.table_prefix") + "groups (group_name, group_options) VALUES ('" + ConfigManager.getString("default_group") + "', '" + options + "')");
 
 
         SQLTableBuilder userTable = new SQLTableBuilder("users");
         userTable.addRow(new SQLTableBuilder.TableRow("user_uuid", SQLTableBuilder.DataType.VARCHAR));
         userTable.addRow(new SQLTableBuilder.TableRow("user_groups", SQLTableBuilder.DataType.LONGTEXT));
-        userTable.addRow(new SQLTableBuilder.TableRow("user_permissions", SQLTableBuilder.DataType.LONGTEXT));
-        userTable.addRow(new SQLTableBuilder.TableRow("user_options", SQLTableBuilder.DataType.LONGTEXT));
         userTable.setPrimaryKey("user_uuid");
         query(userTable.build());
     }
@@ -121,17 +121,21 @@ public class SQLConnection {
         return this.con;
     }
 
-    public void loadUser(Player player, PlayerInfoResultQueryListener resultQueryListener) {
+    public void loadUser(UUID player, PlayerInfoResultQueryListener resultQueryListener) {
+
+        query("INSERT IGNORE INTO " + ConfigManager.getString("mysql.table_prefix") + "users (user_uuid, user_groups) VALUES ('" + player.toString() + "', '" + Base64.getEncoder().encodeToString(ConfigManager.getString("default_group").getBytes()) + "')");
         Objects.requireNonNull(resultQueryListener);
         this.service.execute(() -> {
             if (this.isConnected()) {
+
                 HashMap<String, String> rawPlayerData = new HashMap<>();
-                try (PreparedStatement stmt = this.con.prepareStatement("SELECT * FROM " + configManager.getString("mysql.table_prefix") + "groups")) {
+                try (PreparedStatement stmt = this.con.prepareStatement("SELECT * FROM " + ConfigManager.getString("mysql.table_prefix") + "users WHERE user_uuid='" + player.toString() + "'")) {
+
                     try (ResultSet set = stmt.executeQuery()) {
                         while (set.next()) {
-                            rawPlayerData.put("GROUPS", set.getString("user_groups"));
-                            rawPlayerData.put("PERMISSIONS", set.getString("user_permissions"));
-                            rawPlayerData.put("OPTIONS", set.getString("user_options"));
+                            if (set.getString("user_groups") != null) {
+                                rawPlayerData.put("GROUPS", new String(Base64.getDecoder().decode(set.getString("user_groups").getBytes())));
+                            }
                         }
                     }
                 } catch (SQLException exception) {
@@ -142,12 +146,13 @@ public class SQLConnection {
             }
         });
     }
+
     public void loadGroups(GroupResultQueryListener resultQueryListener) {
         Objects.requireNonNull(resultQueryListener);
         this.service.execute(() -> {
             if (this.isConnected()) {
                 List<PermissionGroup> permissionGroups = new ArrayList<>();
-                try (PreparedStatement stmt = this.con.prepareStatement("SELECT * FROM " + configManager.getString("mysql.table_prefix") + "groups")) {
+                try (PreparedStatement stmt = this.con.prepareStatement("SELECT * FROM " + ConfigManager.getString("mysql.table_prefix") + "groups")) {
                     try (ResultSet set = stmt.executeQuery()) {
                         while (set.next()) {
                             permissionGroups.add(

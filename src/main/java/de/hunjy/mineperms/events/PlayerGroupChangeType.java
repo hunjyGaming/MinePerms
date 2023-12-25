@@ -2,6 +2,6 @@ package de.hunjy.mineperms.events;
 
 public enum PlayerGroupChangeType {
 
-    ADD, REMOVE, UPDATE, EXPIRED;
+    ADD, ADD_TEMP, REMOVE, UPDATE, EXPIRED
 
 }
